@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>https://stanserver.cn/wx</title>
+    <style>
+        body {
+            margin: 0;
+            border: 0;
+            padding: 0;
+            background-color: rgb(30, 30, 30);
+            font-family: "微软雅黑";
+        }
+
+        .backGround {
+
+            width: 90%;
+            position: absolute;
+            bottom: 120px;
+            left: 5%;
+            right: 5%;
+            overflow: scroll;
+            height: 80%;
+            background-color: rgb(40, 40, 40);
+        }
+
+        .me {
+            margin-right: 30px;
+            float: right;
+            width: 90%;
+        }
+
+        .other {
+            margin-left: 30px;
+            float: left;
+            width: 90%;
+        }
+
+        .otherHead {
+            color: rgb(183, 170, 50);
+            background-color: rgb(113, 100, 0);
+            border: 1px rgb(163, 150, 30) solid;
+            position: absolute;
+            top: 0px;
+            right: 101%;
+            text-align: center;
+            font-size: 10px;
+            border-radius: 5px;
+            padding-right: 5px;
+            padding-left: 5px;
+        }
+
+        .otherText {
+            background-color: rgb(30, 30, 30);
+            color: rgb(200, 200, 200);
+            border-radius: 5px;
+            padding: 10px;
+            margin: 10px 50px 10px 20px;
+            float: left;
+            position: relative;
+            font-size: 14px;
+        }
+
+        .meHead {
+            color: rgb(243, 230, 107);
+            background-color: rgb(133, 120, 0);
+            border: 1px rgb(163, 150, 30) solid;
+            position: absolute;
+            top: 0px;
+            left: 101%;
+            text-align: center;
+            font-size: 10px;
+            border-radius: 5px;
+            padding-right: 5px;
+            padding-left: 5px;
+
+        }
+
+        .meText {
+            background-color: rgb(42, 180, 98);
+            border-radius: 5px;
+            padding: 10px;
+            text-align: right;
+            margin: 20px 20px 10px 50px;
+            float: right;
+            position: relative;
+            font-size: 14px;
+        }
+
+        textarea {
+            width: 65%;
+            background-color: rgb(50, 50, 50);
+            border-style: none;
+            color: white;
+            padding: 10px;
+            font-size: 15px;
+            position: fixed;
+            bottom: 50px;
+            left: 5%;
+            height: 60px;
+
+        }
+
+        button {
+            width: 20%;
+            height: 60px;
+            background-color: darkgrey;
+            border-style: none;
+            bottom: 50px;
+            position: fixed;
+            right: 5%;
+        }
+    </style>
+    <title>文件传输</title>
+</head>
+
+<body>
+
+    <div id="backGround" class="backGround">
+        <div class="other">
+            <span class="otherText">
+                <span class="otherHead">Tipes</span>WebSocket连接成功 </span>
+        </div>
+    </div>
+
+    <textarea id="text" type="text"></textarea>
+    <button onclick="send()">发送消息</button>
+
+    <script type="text/javascript">
+        var websocket = null;
+        //判断当前浏览器是否支持WebSocket
+        if ('WebSocket' in window) {
+            websocket = new WebSocket("wss://stanserver.cn/wx/WebSocketServer");
+            // websocket = new WebSocket("ws://localhost:8080/wx/WebSocketServer");
+        }
+        else {
+            alert('当前浏览器 Not support websocket')
+        }
+
+        //连接发生错误的回调方法
+        websocket.onerror = function () {
+            showTipes("WebSocket连接发生错误");
+        };
+
+        //连接成功建立的回调方法
+        websocket.onopen = function () {
+            showTipes("WebSocket连接成功");
+        }
+
+        //接收到消息的回调方法
+        websocket.onmessage = function (event) {
+            setMessageInnerHTML(event.data);
+        }
+
+        //连接关闭的回调方法
+        websocket.onclose = function () {
+            showTipes("WebSocket连接关闭");
+        }
+
+        //监听窗口关闭事件，当窗口关闭时，主动去关闭websocket连接，防止连接还没断开就关闭窗口，server端会抛异常。
+        window.onbeforeunload = function () {
+            closeWebSocket();
+        }
+
+
+        function showTipes(tipes) {
+
+            var distStr = "\n" +
+                "\t<div class=\"other\">\n" +
+                "\t<span class=\"otherText\">\n" +
+                "\t\t<span class=\"otherHead\">Tipes</span>" + tipes +
+                "\t</span>\n" +
+                "\t</div>";
+
+            document.getElementById('backGround').innerHTML += distStr;
+
+            scrollToBottom();
+        }
+
+        //将消息显示在网页上
+        function setMessageInnerHTML(innerHTML) {
+
+            var json = JSON.parse(innerHTML.toString());
+
+            console.log(json);
+
+
+            var distStr = "";
+
+            if (json['type'] == '0') {
+
+                distStr = "<div class=\"me\">\n" +
+                    "\t\t<span class=\"meText\">\n" +
+                    "\t\t<span class =\"meHead\">[ID:" + json['ID'] + "]</span>\n" +
+                    "\t" + json['message'] +
+                    "        </span>\n" +
+                    "   </div>";
+
+            } else {
+
+                distStr = "\n" +
+                    "\t<div class=\"other\">\n" +
+                    "\t<span class=\"otherText\">\n" +
+                    "\t\t<span class=\"otherHead\">[ID:" + json['ID'] + "]</span>" + json['message'] +
+                    "\t</span>\n" +
+                    "\t</div>";
+            }
+
+
+            document.getElementById('backGround').innerHTML += distStr;
+            document.getElementById('text').value = "";
+
+            scrollToBottom();
+        }
+
+        //关闭WebSocket连接
+        function closeWebSocket() {
+            websocket.close();
+        }
+
+
+        //发送消息
+        function send() {
+            var message = document.getElementById('text').value;
+            // websocket.send(message);
+            // websocket.send()
+
+            //转换为二进制
+            var blob = new Blob([message], { type: 'text/plain' });
+            websocket.send(blob);
+            scrollToBottom();
+        }
+
+        // 滚动条到最底部
+        function scrollToBottom() {
+            var ele = document.getElementById('backGround');
+            ele.scrollTop = ele.scrollHeight;
+
+            // var t = document.body.clientHeight;
+            // window.scroll({ top: t, left: 0, behavior: 'smooth' });
+        }
+
+
+        //适配手机屏幕
+        var meta = document.createElement('meta');
+        meta.setAttribute('name', 'viewport');
+        meta.setAttribute('content', 'width=device-width');
+        document.getElementsByTagName('head')[0].appendChild(meta);
+
+    </script>
+</body>
+
+</html>
